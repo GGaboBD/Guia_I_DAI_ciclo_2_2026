@@ -75,3 +75,5 @@ class Tren:
                 raise ValueError("Restricción de seguridad de Vagones Cisterna violada")
             
         self._vagones.append(vagon)
+
+# a ver si ahora funciona
