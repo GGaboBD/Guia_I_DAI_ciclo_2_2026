@@ -21,73 +21,82 @@ class Nodo:
 
     def procesamiento_carga_actual(self):
         raise NotImplementedError("Debe especificarse la lógica de hardware en la arquitectura hija")
-    
 
+
+# 3. HERENCIA Y POLIMORFISMO
 class NodosGenerales(Nodo):
-    def __init__(self, unidad_medida):
-        super().__init__(unidad_medida)
+    def __init__(self, cuota_inicial: CuotaRecurso):
+        super().__init__(cuota_inicial)
     
     def procesamiento_carga_actual(self):
-        self.capacidad_computo -= 6.5
+        # Desgaste fijo del 6.5%
+        self.capacidad_remanente -= 6.5
+
 
 class NodosAceleracionGrafica(Nodo):
-    def __init__(self, unidad_medida, hilos_activos:float):
-        super().__init__(unidad_medida)
+    def __init__(self, cuota_inicial: CuotaRecurso, hilos_activos: float):
+        super().__init__(cuota_inicial)
         self.hilos_activos = hilos_activos
     
     def procesamiento_carga_actual(self):
-        tasa = self.hilos_activos/800.0
-
-        self.capacidad_computo = self.capacidad_computo - (self.capacidad_computo * tasa)
-    
-
-class ConexionFibraOptica:
-    def __init__(self, ID_canal_fibra_optica: str, capacidad_transmision: float):
-        self.ID_canal_fibra_optica = ID_canal_fibra_optica
-        self.capacidad_transmision = capacidad_transmision
-        pass
+        # CORRECCIÓN: El cálculo de la tasa y reducción debe ocurrir DURANTE la ejecución
+        tasa = self.hilos_activos / 800.0
+        self.capacidad_remanente = self.capacidad_remanente - (self.capacidad_remanente * tasa)
 
 
+# 4. COMPOSICIÓN
+class EnlaceFibraOptica:
+    def __init__(self, identificador_canal: str, capacidad_gbps: float):
+        self.identificador_canal = identificador_canal
+        self.capacidad_gbps = capacity_gbps
+
+
+# 5. ENTIDAD RICA (Controlador del Dominio)
 class DespachadorCentral:
-    def __init__(self, ID_red_global: str, region: str, ID_canal_fibra_optica: str, capacidad_transmision: float):
-        self.ID_red_global = ID_red_global
+    def __init__(self, id_red_global: str, region: str, identificador_canal: str, capacidad_gbps: float):
+        self.id_red_global = id_red_global
         self.region = region
-        self._nodos_procesamiento = []
+        self._nodos = []
         self.condicion_operativa = "NORMAL"
-        self.conexion_fibra_optica = ConexionFibraOptica(ID_canal_fibra_optica, capacidad_transmision)
+        # Composición: El enlace físico nace estrictamente adentro
+        self.enlace_fisico = EnlaceFibraOptica(identificador_canal, capacidad_gbps)
 
     @property
-    def mostrar_nodo(self):
-        return tuple(self._nodos_procesamiento)
+    def nodos_asignados(self):
+        return tuple(self._nodos)
 
     def asignar_nodo(self, nodo: Nodo):
-        if len(self._nodos_procesamiento) >= 3:
-            raise ValueError("Capacidad maxima de nodos alcanzada")
-
-        self._nodos_procesamiento.append(nodo)
+        if len(self._nodos) >= 3:
+            raise ValueError("Invariante rota: Capacidad máxima de hardware sobrepasada en despachador")
+        self._nodos.append(nodo)
 
     def procesar_nodos_global(self):
+        # Guardián de seguridad en la primera línea
         if self.condicion_operativa == "EXCLUSION_CRITICA":
-            raise RuntimeError("Ya se encuentra en modo de exclusion critica")
+            raise RuntimeError("Operación ilegal: El despachador se encuentra bajo exclusión crítica")
         
-        if len(self._nodos_procesamiento) == 0:
+        if len(self._nodos) == 0:
             return
+
+        # CORRECCIÓN: Mandar a ejecutar el procesamiento polimórfico en cada nodo asignado
+        for nodo in self._nodos:
+            nodo.procesamiento_carga_actual()
+
+        # Evaluación de métricas e Invariantes globales
+        total_remanente = 0
+        for nodo in self._nodos:
+            total_remanente += nodo.capacidad_remanente
         
-        for nodos in self._nodos_procesamiento:
-            nodos.procesamiento_carga_actual()
-        
-        total = 0
-        for nodo in self._nodos_procesamiento:
-            total += nodo.capacidad_computo
-        
-        promedio = total/len(self._nodos_procesamiento)
+        promedio = total_remanente / len(self._nodos)
 
         if promedio < 35.0:
             self.condicion_operativa = "EXCLUSION_CRITICA"
+            print("¡ADVERTENCIA: Umbral crítico alcanzado! Condición cambiada a EXCLUSION_CRITICA.")
 
 
-
-#------------------------------------------------------------
+#----------------------------------------------------------------------------------------
+# AGREGACIÓN DE VALORES Y EJECUCIÓN EN CONSOLA (Para probar tu código)
+#----------------------------------------------------------------------------------------
 
 # 1. Creamos los objetos de valor de cuota
 cuota_vcpu = CuotaRecurso(8, "vCPU")
