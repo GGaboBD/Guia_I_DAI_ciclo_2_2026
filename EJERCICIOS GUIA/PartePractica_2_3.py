@@ -51,7 +51,6 @@ class CentralHUB:
         if self.estado == "MODO_AHORRO_CRITICO":
             raise RuntimeError("Central bloqueada por seguridad energética")
 
-
         for dispositivo in self._dispositivos:
             dispositivo.actualizar_ciclo()
         print("Evaluando reglas de seguridad...")
